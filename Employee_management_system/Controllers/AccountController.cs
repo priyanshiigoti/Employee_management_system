@@ -139,9 +139,9 @@ namespace employee_management.Controllers
                 return View(model);
             }
 
-            if (!await _userManager.IsEmailConfirmedAsync(user))
+            if (user.EmailConfirmed == false)
             {
-                TempData["ErrorMessage"] = "You need to confirm your email.";
+                TempData["ErrorMessage"] = "You need to confirm your email first.";
                 return View(model);
             }
 
@@ -218,9 +218,9 @@ namespace employee_management.Controllers
                 return View(model);
             }
 
-            if (!await _userManager.IsEmailConfirmedAsync(user))
+            if (user.EmailConfirmed == false)
             {
-                ModelState.AddModelError(string.Empty, "Email is not confirmed. Please confirm your email before resetting your password.");
+                TempData["ErrorMessage"] = "You need to confirm your email first.";
                 return View(model);
             }
 
