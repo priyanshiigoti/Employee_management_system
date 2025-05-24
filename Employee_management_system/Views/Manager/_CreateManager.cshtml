@@ -1,0 +1,68 @@
+﻿@model Employee_management_system.Models.ManagerViewModel
+
+<form id="createManagerForm" method="post" asp-action="Create">
+    @Html.AntiForgeryToken()
+
+    <div class="modal-header">
+        <h5 class="modal-title">Create Manager</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" class="form-control" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DepartmentId" class="form-label">Department</label>
+            <select asp-for="DepartmentId" asp-items="@(new SelectList(ViewBag.Departments, "Id", "DepartmentName"))" class="form-control">
+                <option value="">-- Select Department --</option>
+            </select>
+            <span asp-validation-for="DepartmentId" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ConfirmPassword" class="form-label"></label>
+            <input asp-for="ConfirmPassword" class="form-control" />
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3 form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

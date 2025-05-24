@@ -1,0 +1,189 @@
+﻿@model IEnumerable<Employee_management_system.Models.ManagerViewModel>
+
+@{
+    ViewData["Title"] = "Manage Manager Accounts";
+}
+
+<h2 class="mb-4">Manage Managers</h2>
+
+<button id="btnAdd" class="btn btn-success mb-3">Add Manager</button>
+
+<form id="antiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="table-responsive">
+    <table id="managerCrudTable" class="table table-bordered w-100"></table>
+</div>
+
+<!-- Modal -->
+<div id="divModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let crudTable;
+        let originalModal;
+
+        $(document).ready(function () {
+            if ($("#divModal").length) {
+                originalModal = $("#divModal").clone();
+            }
+
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            crudTable = $('#managerCrudTable').DataTable({
+                ajax: {
+                    url: '/Manager/GetAllManagers',
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': token }
+                },
+                columns: [
+                    { data: 'fullName', title: 'Full Name' },
+                    { data: 'email', title: 'Email' },
+                    { data: 'phoneNumber', title: 'Phone' },
+                    { data: 'departmentName', title: 'Department' },
+                    {
+                        data: 'isActive',
+                        title: 'Active',
+                        render: function (data) {
+                            return data ? 'Active' : 'Inactive';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        title: 'Actions',
+                        orderable: false,
+                        searchable: false,
+                        render: function (id) {
+                            return `
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="addEditManager('${id}')">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteManager('${id}')">Delete</button>
+                            `;
+                        }
+                    }
+                ]
+            });
+
+            $('#btnAdd').click(() => addEditManager(""));
+
+            $(document).on("hidden.bs.modal", "#divModal", function () {
+                $("#divModal").remove();
+                if (originalModal) {
+                    const newModal = originalModal.clone();
+                    $("body").append(newModal);
+                    originalModal = newModal;
+                }
+            });
+
+            $(document).on("submit", "#createManagerForm", function (e) {
+                e.preventDefault();
+                const form = $(this);
+
+                $.ajax({
+                    type: "POST",
+                    url: form.attr('action'),
+                    data: form.serialize(),
+                    success: function (res) {
+                        if (typeof res === 'string') {
+                            $("#modalContent").html(res);
+                            $.validator.unobtrusive.parse("#createManagerForm");
+                        } else if (res.success) {
+                            $("#divModal").modal('hide');
+                            crudTable.ajax.reload(null, false);
+                            showAlert(res.message || "Manager created!", "success");
+                        } else {
+                            let errors = res.errors ? res.errors.join("<br>") : "Failed to create manager.";
+                            showAlert(errors, "danger");
+                        }
+                    },
+                    error: function (xhr) {
+                        showAlert("Server error: " + xhr.statusText, "danger");
+                    }
+                });
+            });
+
+            $(document).on("submit", "#formEditManager", function (e) {
+                e.preventDefault();
+                const form = $(this);
+
+                $.ajax({
+                    type: "POST",
+                    url: form.attr('action'),
+                    data: form.serialize(),
+                    success: function (res) {
+                        if (typeof res === 'string') {
+                            $("#modalContent").html(res);
+                            $.validator.unobtrusive.parse("#formEditManager");
+                        } else if (res.success) {
+                            $("#divModal").modal('hide');
+                            crudTable.ajax.reload(null, false);
+                            showAlert(res.message || "Manager updated!", "success");
+                        } else {
+                            let errors = res.errors ? res.errors.join("<br>") : "Failed to update manager.";
+                            showAlert(errors, "danger");
+                        }
+                    },
+                    error: function (xhr) {
+                        showAlert("Server error: " + xhr.statusText, "danger");
+                    }
+                });
+            });
+        });
+
+        function addEditManager(id) {
+            const url = id ? `/Manager/Edit?id=${id}` : `/Manager/Create`;
+            const btn = $('#btnAdd');
+            btn.prop('disabled', true);
+
+            $("#modalContent").load(url, function (response, status, xhr) {
+                btn.prop('disabled', false);
+                if (status === "error") {
+                    showAlert("Failed to load the form: " + xhr.status + " " + xhr.statusText, "danger");
+                } else {
+                    $("#divModal").modal('show');
+                    $.validator.unobtrusive.parse($("#modalContent").find('form'));
+                }
+            });
+        }
+
+        function deleteManager(id) {
+            if (!confirm("Are you sure you want to delete this manager?")) return;
+
+            const token = $('#antiForgeryForm input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '/Manager/Delete',
+                type: 'POST',
+                data: {
+                    __RequestVerificationToken: token,
+                    id: id
+                },
+                success: function (res) {
+                    if (res.success) {
+                        crudTable.ajax.reload(null, false);
+                        showAlert("Manager deleted successfully.", "success");
+                    } else {
+                        showAlert(res.message || "Failed to delete manager.", "danger");
+                    }
+                },
+                error: function (xhr) {
+                    showAlert("Server error: " + xhr.status + " - " + xhr.statusText, "danger");
+                }
+            });
+        }
+
+        function showAlert(message, type = 'info') {
+            const html = `
+                <div class="alert alert-${type} alert-dismissible fade show fixed-top m-3" style="z-index:1100;" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+            const alert = $(html).appendTo('body');
+            setTimeout(() => alert.alert('close'), 3000);
+        }
+    </script>
+}

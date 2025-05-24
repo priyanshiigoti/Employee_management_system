@@ -1,0 +1,105 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Employee_management_system.Models
+@inject UserManager<Employee_management_system.Models.Entities.ApplicationUser> UserManager
+@inject SignInManager<Employee_management_system.Models.Entities.ApplicationUser> SignInManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - Employee Management System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- jQuery FIRST -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap & DataTables CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap Icons (required for <i class="bi bi-...">) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- Site CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">EMS</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav ms-auto">
+                        @if (!User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Account" asp-action="Login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Account" asp-action="Register">Register</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (User.IsInRole("Employee") || User.IsInRole("Admin") || User.IsInRole("Manager"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                                <i class="bi bi-person-fill me-2"></i> Update Profile
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                                <i class="bi bi-key-fill me-2"></i> Change Password
+                                            </a>
+                                        </li>
+                                    }
+                                    <li>
+                                        <form method="post" asp-controller="Account" asp-action="Logout" id="logoutForm">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="container mt-4">
+        @RenderBody()
+    </main>
+
+    <!-- Bootstrap & DataTables JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Validation and Unobtrusive AJAX Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.unobtrusive-ajax/3.2.6/jquery.unobtrusive-ajax.min.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

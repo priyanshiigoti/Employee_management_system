@@ -1,0 +1,62 @@
+﻿@model Employee_management_system.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center mb-4">@ViewData["Title"]</h2>
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Login" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="form-floating mb-3">
+                            <input asp-for="Email" class="form-control" placeholder="Email" />
+                            <label asp-for="Email"></label>
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Password" class="form-control" type="password" placeholder="Password" />
+                            <label asp-for="Password"></label>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">Remember Me</label>
+                        </div>
+
+                        <div class="text-end mb-3">
+                            <a asp-action="ForgotPassword" asp-controller="Account" class="small text-decoration-none">Forgot your password?</a><br />
+                            <a asp-action="ResendEmailConfirmation" asp-controller="Account" class="small text-decoration-none">Resend email confirmation?</a>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill">Login</button>
+                        </div>
+
+                        <div class="text-center mt-2">
+                            <small>
+                                Don't have an account?
+                                <a asp-action="Register" asp-controller="Account" class="text-decoration-none">Register here</a>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

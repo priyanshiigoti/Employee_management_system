@@ -1,0 +1,67 @@
+﻿@model Employee_management_system.Models.EmployeeViewModel
+
+<form id="formCreateOrEdit">
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+
+    <div class="modal-header">
+        <h5 class="modal-title">@((Model.Id > 0) ? "Edit Employee" : "Add Employee")</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div class="mb-3">
+            @Html.LabelFor(m => m.FirstName, new { @class = "form-label" })
+            @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="mb-3">
+            @Html.LabelFor(m => m.LastName, new { @class = "form-label" })
+            @Html.TextBoxFor(m => m.LastName, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="mb-3">
+            @Html.LabelFor(m => m.Email, new { @class = "form-label" })
+            @if (Model.Id > 0)
+            {
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @readonly = "readonly" })
+            }
+            else
+            {
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+            }
+            @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+        </div>
+
+
+        <div class="mb-3">
+            @Html.LabelFor(m => m.Phone, new { @class = "form-label" })
+            @Html.TextBoxFor(m => m.Phone, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Phone, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="mb-3">
+            @Html.LabelFor(m => m.DepartmentId, "Department", new { @class = "form-label" })
+            @Html.DropDownListFor(m => m.DepartmentId, Model.Departments, "-- Select Department --", new { @class = "form-select" })
+            @Html.ValidationMessageFor(m => m.DepartmentId, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-check mb-3">
+            @Html.CheckBoxFor(m => m.IsActive, new { @class = "form-check-input", id = "IsActive" })
+            @Html.LabelFor(m => m.IsActive, new { @class = "form-check-label", @for = "IsActive" })
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

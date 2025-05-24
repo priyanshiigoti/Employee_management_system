@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1 class="display-5">Welcome to the Admin Dashboard</h1>
+        <p class="lead">Manage users, departments, and other system-wide settings.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Departments</h5>
+                    <p class="card-text">Add, edit, or remove departments.</p>
+                    <a href="@Url.Action("Index", "Department")" class="btn btn-outline-primary">Manage Departments</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Employees</h5>
+                    <p class="card-text">View and manage all employees.</p>
+                    <a href="@Url.Action("Index", "Employee")" class="btn btn-outline-primary">Manage Employees</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Managers</h5>
+                    <p class="card-text">Assign or revoke Manager role from users.</p>
+                    <a href="@Url.Action("Manage", "Manager")" class="btn btn-outline-primary">Manage Managers</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
