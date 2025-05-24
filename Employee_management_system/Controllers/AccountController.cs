@@ -53,7 +53,7 @@ namespace employee_management.Controllers
                 {
                     UserName = model.Email,
                     Email = model.Email,
-                    FullName = $"{model.FirstName} {model.LastName}", 
+                    FullName = $"{model.FirstName} {model.LastName}",
                     PhoneNumber = model.Phone,
                     Gender = model.Gender,
                     DepartmentId = model.DepartmentId
@@ -73,7 +73,7 @@ namespace employee_management.Controllers
                         Phone = model.Phone,
                         IsActive = true,
                         DepartmentId = model.DepartmentId,
-                        IdentityUserId = user.Id 
+                        IdentityUserId = user.Id
                     };
 
                     _context.Employees.Add(employee);
@@ -135,13 +135,13 @@ namespace employee_management.Controllers
 
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                TempData["ErrorMessage"] = "Invalid login attempt.";
                 return View(model);
             }
 
             if (!await _userManager.IsEmailConfirmedAsync(user))
             {
-                ModelState.AddModelError(string.Empty, "You need to confirm your email.");
+                TempData["ErrorMessage"] = "You need to confirm your email.";
                 return View(model);
             }
 
@@ -183,7 +183,7 @@ namespace employee_management.Controllers
                 }
                 else if (await _userManager.IsInRoleAsync(user, "Manager"))
                 {
-                    return RedirectToAction("Index", "Employee"); 
+                    return RedirectToAction("Index", "Employee");
                 }
 
                 return RedirectToAction("Index", "Home");
@@ -320,7 +320,7 @@ namespace employee_management.Controllers
             {
                 await _signInManager.RefreshSignInAsync(user);
                 TempData["Success"] = "Password changed successfully!";
-                return View(); 
+                return View();
             }
 
             TempData["Error"] = "Password change failed.";
@@ -337,4 +337,3 @@ namespace employee_management.Controllers
 
     }
 }
-
