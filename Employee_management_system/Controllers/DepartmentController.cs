@@ -24,6 +24,37 @@ namespace Employee_Management_System.Controllers
             return View();
         }
 
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public IActionResult GetAll()
+        //{
+        //    var draw = Request.Form["draw"].FirstOrDefault();
+        //    var start = Request.Form["start"].FirstOrDefault();
+        //    var length = Request.Form["length"].FirstOrDefault();
+        //    var searchValue = Request.Form["search[value]"].FirstOrDefault();
+
+        //    int pageSize = string.IsNullOrEmpty(length) ? 10 : int.Parse(length);
+        //    int skip = string.IsNullOrEmpty(start) ? 0 : int.Parse(start);
+
+        //    var query = _context.Departments.AsQueryable();
+
+        //    if (!string.IsNullOrEmpty(searchValue))
+        //    {
+        //        query = query.Where(x => x.DepartmentName.Contains(searchValue));
+        //    }
+
+        //    int recordsTotal = query.Count();
+        //    var data = query.Skip(skip).Take(pageSize).ToList();
+
+        //    return Json(new
+        //    {
+        //        draw,
+        //        recordsFiltered = recordsTotal,
+        //        recordsTotal,
+        //        data
+        //    });
+        //}
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult GetAll()
@@ -33,17 +64,40 @@ namespace Employee_Management_System.Controllers
             var length = Request.Form["length"].FirstOrDefault();
             var searchValue = Request.Form["search[value]"].FirstOrDefault();
 
+            // Sorting
+            var sortColumnIndex = Request.Form["order[0][column]"].FirstOrDefault();
+            var sortDirection = Request.Form["order[0][dir]"].FirstOrDefault(); // asc or desc
+
             int pageSize = string.IsNullOrEmpty(length) ? 10 : int.Parse(length);
             int skip = string.IsNullOrEmpty(start) ? 0 : int.Parse(start);
 
             var query = _context.Departments.AsQueryable();
 
+            // Searching
             if (!string.IsNullOrEmpty(searchValue))
             {
                 query = query.Where(x => x.DepartmentName.Contains(searchValue));
             }
 
             int recordsTotal = query.Count();
+
+            // Define sortable columns in order matching your DataTable columns
+            var columns = new[] { "DepartmentName" };
+
+            if (!string.IsNullOrEmpty(sortColumnIndex) && int.TryParse(sortColumnIndex, out int sortCol))
+            {
+                string sortColumn = columns.ElementAtOrDefault(sortCol);
+                if (!string.IsNullOrEmpty(sortColumn))
+                {
+                    query = query.OrderBy($"{sortColumn} {sortDirection}");
+                }
+            }
+            else
+            {
+                // Default sorting if no sort info provided
+                query = query.OrderBy(d => d.DepartmentName);
+            }
+
             var data = query.Skip(skip).Take(pageSize).ToList();
 
             return Json(new
@@ -54,6 +108,7 @@ namespace Employee_Management_System.Controllers
                 data
             });
         }
+
 
         [HttpGet]
         public IActionResult Create()

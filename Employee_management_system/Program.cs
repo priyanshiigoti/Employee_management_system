@@ -1,65 +1,83 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using System.Net;
 using Employee_Management_System.Data;
-using Employee_Management_System.Services;
 using Employee_management_system.Models.Entities;
+using Employee_Management_System.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Add services
 builder.Services.AddControllersWithViews();
-
-// Register EmailSender for sending emails
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 
-// Configure EF Core with SQL Server
+// EF Core + Identity (no cookie login)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    options.ConfigureWarnings(warnings =>
-        warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
-});
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Identity with ApplicationUser and Roles
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Password policy
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
-    options.Password.RequireNonAlphanumeric = true;
     options.Password.RequireUppercase = true;
     options.Password.RequiredLength = 6;
-    options.Password.RequiredUniqueChars = 1;
+    options.SignIn.RequireConfirmedEmail = false;
 
-    // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.AllowedForNewUsers = true;
-
-    // User settings
     options.User.RequireUniqueEmail = true;
-
-    // Sign-in settings
-    options.SignIn.RequireConfirmedEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Configure cookie settings
-builder.Services.ConfigureApplicationCookie(options =>
+
+// JWT Settings
+builder.Services.Configure<JwtService>(builder.Configuration.GetSection("JwtSettings"));
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+
+// JWT Authentication
+builder.Services.AddAuthentication(options =>
 {
-    options.Cookie.HttpOnly = true;
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-    options.LoginPath = "/Account/Login";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-    options.SlidingExpiration = true;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.HttpContext.Request.Cookies["JwtToken"];
+            if (!string.IsNullOrEmpty(token))
+            {
+                context.Token = token;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -68,12 +86,21 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode == (int)HttpStatusCode.Forbidden)
+    {
+        context.Response.Redirect("/Account/AccessDenied");
+    }
+});
+
+// Routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");

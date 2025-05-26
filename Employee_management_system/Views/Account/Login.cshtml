@@ -1,4 +1,4 @@
-﻿@model Employee_management_system.Models.LoginViewModel
+﻿@model LoginViewModel
 
 @{
     ViewData["Title"] = "Login";
@@ -11,14 +11,6 @@
                 <div class="card-body p-4">
                     <h2 class="card-title text-center mb-4">@ViewData["Title"]</h2>
 
-                    @if (TempData["SuccessMessage"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            @TempData["SuccessMessage"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
-
                     @if (TempData["ErrorMessage"] != null)
                     {
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -27,8 +19,9 @@
                         </div>
                     }
 
-                    <form asp-action="Login" method="post" novalidate>
+                    <form method="post" novalidate>
                         @Html.AntiForgeryToken()
+
                         <div class="form-floating mb-3">
                             <input asp-for="Email" class="form-control" placeholder="Email" />
                             <label asp-for="Email"></label>
@@ -36,7 +29,7 @@
                         </div>
 
                         <div class="form-floating mb-3">
-                            <input asp-for="Password" class="form-control" type="password" placeholder="Password" />
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
                             <label asp-for="Password"></label>
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
@@ -68,3 +61,6 @@
     </div>
 </div>
 
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

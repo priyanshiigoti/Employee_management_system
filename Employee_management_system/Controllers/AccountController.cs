@@ -8,6 +8,12 @@ using Employee_management_system.Models.Entities;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Employee_Management_System.Data;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Employee_management_system.Services;
 
 namespace employee_management.Controllers
 {
@@ -17,18 +23,25 @@ namespace employee_management.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailSender _emailSender;
         private readonly ApplicationDbContext _context;
+        private readonly JwtService _jwtSettings;
+        private readonly IConfiguration _configuration;
+
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IOptions<JwtService> jwtOptions,
+           IConfiguration configuration)
 
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _context = context;
+            _jwtSettings = jwtOptions.Value;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> RegisterAsync()
@@ -44,6 +57,7 @@ namespace employee_management.Controllers
         }
 
         [HttpPost]
+
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
@@ -89,9 +103,29 @@ namespace employee_management.Controllers
                     return RedirectToAction("RegisterConfirmation", new { email = model.Email });
                 }
 
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError(string.Empty, error.Description);
-            }
+                
+                    var passwordErrors = result.Errors
+                        .Where(e => e.Code.Contains("Password"))
+                        .Select(e => e.Description)
+                        .ToList();
+
+                    foreach (var key in ModelState.Keys.Where(k => k.Contains("Password")).ToList())
+                    {
+                        ModelState[key].Errors.Clear();
+                    }
+
+                    foreach (var err in passwordErrors)
+                    {
+                        ModelState.AddModelError(string.Empty, err);
+                    }
+
+                    foreach (var error in result.Errors.Where(e => !e.Code.Contains("Password")))
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                }
+
+            
 
             ViewBag.Departments = await _context.Departments
                 .Select(d => new SelectListItem
@@ -100,6 +134,9 @@ namespace employee_management.Controllers
                     Text = d.DepartmentName
                 }).ToListAsync();
 
+
+            
+        
             return View(model);
         }
 
@@ -125,72 +162,70 @@ namespace employee_management.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
             var user = await _userManager.FindByEmailAsync(model.Email);
-
-            if (user == null)
+            if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
             {
                 TempData["ErrorMessage"] = "Invalid login attempt.";
                 return View(model);
             }
 
-            if (user.EmailConfirmed == false)
+            if (!user.EmailConfirmed)
             {
-                TempData["ErrorMessage"] = "You need to confirm your email first.";
+                TempData["ErrorMessage"] = "Please confirm your email first.";
                 return View(model);
             }
 
-            if (await _userManager.IsInRoleAsync(user, "Employee"))
-            {
-                var employee = await _context.Employees
-                    .FirstOrDefaultAsync(e => e.IdentityUserId == user.Id);
+            var roles = await _userManager.GetRolesAsync(user);
 
-                if (employee == null || !employee.IsActive)
-                {
-                    ModelState.AddModelError(string.Empty, "Your account is deactivated. Please contact administrator.");
-                    return View(model);
-                }
+            // Create JWT token
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName)
+            };
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            if (await _userManager.IsInRoleAsync(user, "Manager"))
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds);
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Save token in cookie or session (optional)
+            Response.Cookies.Append("JwtToken", tokenString, new CookieOptions
             {
-                var employee = await _context.Employees
-                    .FirstOrDefaultAsync(e => e.IdentityUserId == user.Id);
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
+            if (roles.Contains("Admin"))
+                return RedirectToAction("AdminDashboard", "Dashboard");
 
-                if (employee == null || !employee.IsActive)
-                {
-                    ModelState.AddModelError(string.Empty, "Your account is deactivated. Please contact administrator.");
-                    return View(model);
-                }
-            }
+            if (roles.Contains("Manager"))
+                return RedirectToAction("ManagerDashboard", "Dashboard");
 
-            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+            if (roles.Contains("Employee"))
+                return RedirectToAction("EmployeeDashboard", "Dashboard");
 
-            if (result.Succeeded)
-            {
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
-                {
-                    return RedirectToAction("AdminDashboard", "Dashboard");
-                }
-                else if (await _userManager.IsInRoleAsync(user, "Employee"))
-                {
-                    return RedirectToAction("EmployeeDashboard", "Dashboard");
-                }
-                else if (await _userManager.IsInRoleAsync(user, "Manager"))
-                {
-                    return RedirectToAction("Index", "Employee");
-                }
-
-                return RedirectToAction("Index", "Home");
-            }
-
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-            return View(model);
+            return RedirectToAction("Index", "Home");
         }
 
 
@@ -198,9 +233,13 @@ namespace employee_management.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            // Sign out user
             await _signInManager.SignOutAsync();
+            Response.Cookies.Delete("JwtToken");
+
             return RedirectToAction("Login", "Account");
         }
+
 
         public IActionResult ForgotPassword() => View();
 
@@ -245,24 +284,37 @@ namespace employee_management.Controllers
 
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null)
+            {
                 return RedirectToAction("ResetPasswordConfirmation");
+            }
 
             var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
             if (result.Succeeded)
+            {
                 return RedirectToAction("ResetPasswordConfirmation");
+            }
 
             foreach (var error in result.Errors)
+            {
                 ModelState.AddModelError(string.Empty, error.Description);
+            }
 
-            return View();
+            return View(model);
         }
 
         public IActionResult ResetPasswordConfirmation() => View();
 
+
         [HttpGet]
         public async Task<IActionResult> Profile()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var jwtUser = JwtHelper.GetJwtUser(HttpContext);
+            if (!jwtUser.IsAuthenticated || string.IsNullOrEmpty(jwtUser.Email))
+            {
+                return Json(new { error = "User not authenticated." });
+            }
+
+            var user = await _userManager.FindByEmailAsync(jwtUser.Email);
             if (user == null) return NotFound();
 
             var model = new UpdateProfileViewModel
@@ -277,9 +329,15 @@ namespace employee_management.Controllers
         [HttpPost]
         public async Task<IActionResult> Profile(UpdateProfileViewModel model)
         {
+            var jwtUser = JwtHelper.GetJwtUser(HttpContext);
+            if (!jwtUser.IsAuthenticated || string.IsNullOrEmpty(jwtUser.Email))
+            {
+                return Json(new { error = "User not authenticated." });
+            }
+
             if (!ModelState.IsValid) return View(model);
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.FindByEmailAsync(jwtUser.Email);
             if (user == null) return NotFound();
 
             user.FullName = model.FullName;
@@ -302,36 +360,52 @@ namespace employee_management.Controllers
         }
 
         [HttpGet]
-        public IActionResult ChangePassword() => View(new ChangePasswordViewModel());
+        public IActionResult ChangePassword()
+        {
+            var jwtUser = JwtHelper.GetJwtUser(HttpContext);
+            if (!jwtUser.IsAuthenticated || string.IsNullOrEmpty(jwtUser.Email))
+            {
+                return Json(new { error = "User not authenticated." });
+            }
+
+            return View(new ChangePasswordViewModel());
+        }
 
         [HttpPost]
         public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
         {
+            var jwtUser = JwtHelper.GetJwtUser(HttpContext);
+            if (!jwtUser.IsAuthenticated || string.IsNullOrEmpty(jwtUser.Email))
+            {
+                return Json(new { error = "User not authenticated." });
+            }
+
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.FindByEmailAsync(jwtUser.Email);
             if (user == null)
                 return RedirectToAction("Login");
 
             var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
-
             if (result.Succeeded)
             {
                 await _signInManager.RefreshSignInAsync(user);
-                TempData["Success"] = "Password changed successfully!";
+                TempData["SuccessMessage"] = "Password changed successfully!";
                 return View();
             }
 
-            TempData["Error"] = "Password change failed.";
+            TempData["ErrorMessage"] = "Password change failed.";
             foreach (var error in result.Errors)
                 ModelState.AddModelError(string.Empty, error.Description);
 
             return View(model);
         }
 
+
         public IActionResult AccessDenied()
         {
+
             return View();
         }
 

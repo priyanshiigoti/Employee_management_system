@@ -1,50 +1,48 @@
-﻿@using Employee_management_system.Models.Entities
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
-@inject UserManager<ApplicationUser> UserManager
-@inject Employee_Management_System.Data.ApplicationDbContext _context
+﻿@model Employee_management_system.Models.EmployeeViewModel
 
 @{
     ViewData["Title"] = "Employee Dashboard";
-    var userId = UserManager.GetUserId(User);
-    var user = await _context.Users
-        .Include(u => u.Department)
-        .FirstOrDefaultAsync(u => u.Id == userId);
 }
 
 <div class="container mt-5">
-    <div class="text-center mb-4">
-        <h1 class="display-5">Welcome to the Employee Dashboard</h1>
-        <p class="lead text-muted">Hello, <strong>@user?.FullName</strong>. You're logged in as an <strong>Employee</strong>.</p>
-    </div>
-
-    <div class="card shadow rounded-4 mx-auto" style="max-width: 600px;">
-        <div class="card-header bg-primary text-white text-center rounded-top-4">
-            <h5 class="mb-0">Your Profile Details</h5>
+    <div class="card shadow-lg border-0 rounded-3">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Welcome to Your Dashboard</h4>
         </div>
         <div class="card-body">
-            <div class="mb-3 row">
+            <p class="lead text-muted">
+                Hello, <strong>@Model.FirstName</strong>. You're logged in as an <strong>Employee</strong>.
+            </p>
+
+            <hr />
+
+            <h5 class="mb-3">Your Profile Details</h5>
+
+            <div class="row mb-3">
                 <label class="col-sm-4 col-form-label fw-bold">Full Name:</label>
                 <div class="col-sm-8 pt-1">
-                    @user?.FullName
+                    @Model.FirstName
                 </div>
             </div>
-            <div class="mb-3 row">
+
+            <div class="row mb-3">
                 <label class="col-sm-4 col-form-label fw-bold">Email:</label>
                 <div class="col-sm-8 pt-1">
-                    @user?.Email
+                    @Model.Email
                 </div>
             </div>
-            <div class="mb-3 row">
+
+            <div class="row mb-3">
                 <label class="col-sm-4 col-form-label fw-bold">Phone:</label>
                 <div class="col-sm-8 pt-1">
-                    @user?.PhoneNumber
+                    @(string.IsNullOrEmpty(Model.Phone) ? "N/A" : Model.Phone)
                 </div>
             </div>
-            <div class="mb-3 row">
+
+            <div class="row mb-3">
                 <label class="col-sm-4 col-form-label fw-bold">Department:</label>
                 <div class="col-sm-8 pt-1">
-                    @user?.Department?.DepartmentName
+                    @Model.DepartmentName
                 </div>
             </div>
         </div>

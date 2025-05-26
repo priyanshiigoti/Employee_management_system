@@ -3,7 +3,8 @@
 }
 
 <div class="container mt-5">
-    <div class="text-center mb-4">
+
+    <div class="text-center my-5">
         <h1 class="display-5">Welcome to the Admin Dashboard</h1>
         <p class="lead">Manage users, departments, and other system-wide settings.</p>
     </div>
@@ -40,3 +41,14 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function copyToken() {
+            const token = "@ViewBag.JwtToken";
+            navigator.clipboard.writeText(token).then(() => {
+                alert("Token copied to clipboard!");
+            });
+        }
+    </script>
+}
